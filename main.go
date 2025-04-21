@@ -1,10 +1,20 @@
 package main
 
 import (
+	"context"
+	"fmt"
 	"log"
+	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
+	"github.com/mdp/qrterminal/v3"
 	"github.com/xuri/excelize/v2"
+	"go.mau.fi/whatsmeow"
+	"go.mau.fi/whatsmeow/proto/waE2E"
+	"go.mau.fi/whatsmeow/store/sqlstore"
+	"go.mau.fi/whatsmeow/types/events"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 )
@@ -53,6 +63,69 @@ func main() {
 		log.Fatal("failed to migrate database:", err)
 	}
 
+	// Whatsmeow
+	container, err := sqlstore.New("sqlite3", "file:session.db?_foreign_keys=on", nil)
+	if err != nil {
+		log.Fatalf("gagal buat store container: %v", err)
+	}
+
+	// Ambil device pertama dari DB
+	deviceStore, err := container.GetFirstDevice()
+	if err != nil {
+		log.Fatalf("gagal ambil device: %v", err)
+	}
+
+	client := whatsmeow.NewClient(deviceStore, nil)
+
+	client.AddEventHandler(func(evt interface{}) {
+		switch v := evt.(type) {
+		case *events.Message:
+			if v.Info.MessageSource.IsFromMe {
+				return
+			}
+
+			sender := v.Info.Sender.String()
+			msg := v.Message.GetConversation()
+
+			log.Printf("Dapat pesan dari %s: %s\n", sender, msg)
+
+			// Balas pesan
+			reply := fmt.Sprintf("Halo juga! Kamu ngetik: %s", msg)
+			_, err := client.SendMessage(context.Background(), v.Info.Chat, &waE2E.Message{
+				Conversation: &reply,
+			})
+			if err != nil {
+				log.Printf("Gagal kirim balasan: %v", err)
+			}
+		}
+	})
+
+	// Cek sudah login atau belum
+	if client.Store.ID == nil {
+		// Belum login, scan QR code
+		qrChan, _ := client.GetQRChannel(context.Background())
+		err := client.Connect()
+		if err != nil {
+			log.Fatalf("gagal connect: %v", err)
+		}
+
+		for evt := range qrChan {
+			if evt.Event == "code" {
+				fmt.Println("Scan QR ini untuk login WhatsApp")
+				qrterminal.GenerateHalfBlock(evt.Code, qrterminal.L, os.Stdout)
+			} else {
+				fmt.Println("Login status:", evt.Event)
+			}
+		}
+	} else {
+		// Sudah login, langsung connect
+		err := client.Connect()
+		if err != nil {
+			log.Fatalf("gagal reconnect: %v", err)
+		}
+	}
+
+	// Ambil data dari sheet "KGB"
 	rows, err := f.GetRows("KGB")
 	if err != nil {
 		log.Fatal(err)
@@ -131,6 +204,14 @@ func main() {
 			log.Println("-")
 		}
 	}
+
+	// Tunggu sampai app dimatikan
+	sig := make(chan os.Signal, 1)
+	signal.Notify(sig, os.Interrupt, syscall.SIGTERM)
+	<-sig
+
+	fmt.Println("Menutup koneksi...")
+	client.Disconnect()
 }
 
 func SendWhatsAppNotification(data *KGBData) error {
