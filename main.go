@@ -5,6 +5,8 @@ import (
 	"time"
 
 	"github.com/xuri/excelize/v2"
+	"gorm.io/driver/sqlite"
+	"gorm.io/gorm"
 )
 
 type KGBData struct {
@@ -32,9 +34,23 @@ type KGBData struct {
 }
 
 func main() {
+	log.Println("Starting...")
+
+	log.Println("Loading Excel file...")
 	f, err := excelize.OpenFile("data.xlsx")
 	if err != nil {
 		log.Fatal(err)
+	}
+
+	log.Println("Loading Session Database...")
+	db, err := gorm.Open(sqlite.Open("session.db"), &gorm.Config{})
+	if err != nil {
+		log.Fatal("failed to connect database:", err)
+	}
+
+	err = db.AutoMigrate()
+	if err != nil {
+		log.Fatal("failed to migrate database:", err)
 	}
 
 	rows, err := f.GetRows("KGB")
@@ -117,7 +133,7 @@ func main() {
 	}
 }
 
-func SendWhatsAppMessage(message string) error {
+func SendWhatsAppNotification(data *KGBData) error {
 	// Implementasi pengiriman pesan WhatsApp
 	// Misalnya menggunakan Twilio, WhatsApp API, atau library lain
 	return nil
