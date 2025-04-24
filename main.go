@@ -14,6 +14,7 @@ import (
 	"go.mau.fi/whatsmeow"
 	"go.mau.fi/whatsmeow/proto/waE2E"
 	"go.mau.fi/whatsmeow/store/sqlstore"
+	"go.mau.fi/whatsmeow/types"
 	"go.mau.fi/whatsmeow/types/events"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
@@ -43,6 +44,12 @@ type KGBData struct {
 	Di            string
 }
 
+type Notified struct {
+	NIP     string `gorm:"primaryKey,column:nip"`
+	TMTLama string
+	TMTBaru string
+}
+
 func main() {
 	log.Println("Starting...")
 
@@ -58,7 +65,7 @@ func main() {
 		log.Fatal("failed to connect database:", err)
 	}
 
-	err = db.AutoMigrate()
+	err = db.AutoMigrate(&Notified{})
 	if err != nil {
 		log.Fatal("failed to migrate database:", err)
 	}
@@ -197,11 +204,31 @@ func main() {
 
 		// Cek apakah TMT Baru berada di antara sekarang dan dua bulan ke depan
 		if tmtBaru.After(now) && tmtBaru.Before(twoMonthsLater) {
-			log.Println("-")
-			log.Println("Now       :", now.Format("02-01-2006"))
-			log.Println("TMT Lama  :", tmtLama.Format("02-01-2006"))
-			log.Println("TMT Baru  :", tmtBaru.Format("02-01-2006"))
-			log.Println("-")
+			// Cek apakah sudah diberitahu sebelumnya
+			var notified Notified
+			err = db.First(&notified, "nip = ? AND tmt_lama = ? AND tmt_baru = ?", d.NIP, d.TMTLama, tmtBaru.Format("02-01-2006")).Error
+			if err == nil {
+				log.Printf("Sudah diberitahu sebelumnya untuk No %s (NIP: %s)\n", d.No, d.NIP)
+				continue
+			}
+			// Simpan data yang sudah diberitahu
+			notified = Notified{
+				NIP:     d.NIP,
+				TMTLama: tmtLama.Format("02-01-2006"),
+				TMTBaru: tmtBaru.Format("02-01-2006"),
+			}
+			err = db.Create(&notified).Error
+			if err != nil {
+				log.Printf("Gagal simpan data yang sudah diberitahu: %v\n", err)
+				continue
+			}
+			// Kirim notifikasi WhatsApp
+			err = SendWhatsAppNotification(client, &d, &now, &tmtLama, &tmtBaru)
+			if err != nil {
+				log.Printf("Gagal kirim notifikasi WhatsApp: %v\n", err)
+				continue
+			}
+			log.Printf("Notifikasi terkirim untuk No %s (NIP: %s)\n", d.No, d.NIP)
 		}
 	}
 
@@ -214,8 +241,18 @@ func main() {
 	client.Disconnect()
 }
 
-func SendWhatsAppNotification(data *KGBData) error {
-	// Implementasi pengiriman pesan WhatsApp
-	// Misalnya menggunakan Twilio, WhatsApp API, atau library lain
+func SendWhatsAppNotification(client *whatsmeow.Client, data *KGBData, now *time.Time, tmtLama *time.Time, tmtBaru *time.Time) error {
+	// Kirim notifikasi WhatsApp ke grup
+	// Ganti dengan nomor grup WhatsApp yang sesuai
+	groupJID := types.NewJID("120363399863476722", "g.us")
+
+	// Kirim pesan ke grup
+	text := fmt.Sprintf("Notifikasi KGB\n\nNo: %s\nNama: %s\nNIP: %s\nTMT Lama: %s\nTMT Baru: %s\n", data.No, data.Nama, data.NIP, tmtLama.Format("02-01-2006"), tmtBaru.Format("02-01-2006"))
+	_, err := client.SendMessage(context.Background(), groupJID, &waE2E.Message{
+		Conversation: &text,
+	})
+	if err != nil {
+		return fmt.Errorf("gagal kirim pesan ke grup: %w", err)
+	}
 	return nil
 }
