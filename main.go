@@ -15,7 +15,6 @@ import (
 	"go.mau.fi/whatsmeow/proto/waE2E"
 	"go.mau.fi/whatsmeow/store/sqlstore"
 	"go.mau.fi/whatsmeow/types"
-	"go.mau.fi/whatsmeow/types/events"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 )
@@ -83,29 +82,6 @@ func main() {
 	}
 
 	client := whatsmeow.NewClient(deviceStore, nil)
-
-	client.AddEventHandler(func(evt interface{}) {
-		switch v := evt.(type) {
-		case *events.Message:
-			if v.Info.MessageSource.IsFromMe {
-				return
-			}
-
-			sender := v.Info.Sender.String()
-			msg := v.Message.GetConversation()
-
-			log.Printf("Dapat pesan dari %s: %s\n", sender, msg)
-
-			// Balas pesan
-			reply := fmt.Sprintf("Halo juga! Kamu ngetik: %s", msg)
-			_, err := client.SendMessage(context.Background(), v.Info.Chat, &waE2E.Message{
-				Conversation: &reply,
-			})
-			if err != nil {
-				log.Printf("Gagal kirim balasan: %v", err)
-			}
-		}
-	})
 
 	// Cek sudah login atau belum
 	if client.Store.ID == nil {
@@ -206,7 +182,7 @@ func main() {
 		if tmtBaru.After(now) && tmtBaru.Before(twoMonthsLater) {
 			// Cek apakah sudah diberitahu sebelumnya
 			var notified Notified
-			err = db.First(&notified, "nip = ? AND tmt_lama = ? AND tmt_baru = ?", d.NIP, d.TMTLama, tmtBaru.Format("02-01-2006")).Error
+			err = db.First(&notified, "nip = ? AND tmt_lama = ? AND tmt_baru = ?", d.NIP, tmtLama, tmtBaru).Error
 			if err == nil {
 				log.Printf("Sudah diberitahu sebelumnya untuk No %s (NIP: %s)\n", d.No, d.NIP)
 				continue
@@ -247,7 +223,17 @@ func SendWhatsAppNotification(client *whatsmeow.Client, data *KGBData, now *time
 	groupJID := types.NewJID("120363399863476722", "g.us")
 
 	// Kirim pesan ke grup
-	text := fmt.Sprintf("Notifikasi KGB\n\nNo: %s\nNama: %s\nNIP: %s\nTMT Lama: %s\nTMT Baru: %s\n", data.No, data.Nama, data.NIP, tmtLama.Format("02-01-2006"), tmtBaru.Format("02-01-2006"))
+	text := fmt.Sprintf(
+		`
+*Notifikasi KGB*
+No: *%s*
+
+Nama: %s
+NIP: *%s*
+
+TMT Lama: *%s*
+TMT Baru: *%s*
+		`, data.No, data.Nama, data.NIP, tmtLama.Format("02-01-2006"), tmtBaru.Format("02-01-2006"))
 	_, err := client.SendMessage(context.Background(), groupJID, &waE2E.Message{
 		Conversation: &text,
 	})
