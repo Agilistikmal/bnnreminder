@@ -7,9 +7,17 @@ import (
 	"os/signal"
 	"syscall"
 	"time"
+
+	"github.com/common-nighthawk/go-figure"
 )
 
 func main() {
+	fmt.Println("")
+	figure.NewColorFigure("Notifikasi KGB", "doom", "cyan", true).Print()
+	fmt.Println("")
+	fmt.Println("Informatika UTY - Agil GI")
+	fmt.Println("")
+
 	log.Println("Starting...")
 
 	log.Println("Loading Session Database...")
