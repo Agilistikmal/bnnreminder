@@ -63,18 +63,60 @@ func SendWhatsAppNotification(client *whatsmeow.Client, data *KGBData, now *time
 	// Ganti dengan nomor grup WhatsApp yang sesuai
 	groupJID := types.NewJID("120363399863476722", "g.us")
 
+	// Format tanggal Indonesia
+	tmtLamaStr := tmtLama.Format("02 January 2006")
+	tmtBaruStr := tmtBaru.Format("02 January 2006")
+
 	// Kirim pesan ke grup
 	text := fmt.Sprintf(
-		`
-*Notifikasi KGB*
-No: *%s*
+		`🔔 *NOTIFIKASI KENAIKAN GAJI BERKALA* 🔔
+━━━━━━━━━━━━━━━━━━━━━
 
-Nama: %s
-NIP: *%s*
+👤 *INFORMASI PEGAWAI*
+📝 Nomor: %s
+👨‍💼 Nama: *%s*
+🆔 NIP: *%s*
+📊 Pangkat/Gol: *%s/%s*
 
-TMT Lama: *%s*
-TMT Baru: *%s*
-		`, data.No, data.Nama, data.NIP, tmtLama.Format("02-01-2006"), tmtBaru.Format("02-01-2006"))
+📅 *INFORMASI KGB*
+• TMT Lama: *%s*
+• Gaji Pokok Lama: *Rp%s*
+• Masa Kerja Lama: *%s*
+
+📈 *KENAIKAN GAJI BERKALA*
+• TMT Baru: *%s*
+• Gaji Pokok Baru: *Rp%s*
+• Masa Kerja Baru: *%s*
+
+📋 *INFORMASI SURAT*
+• Nomor: *%s*
+• Tanggal: *%s*
+• Pejabat: *%s*
+
+🏢 *UNIT KERJA*
+• Satker: *%s*
+• Lokasi: *%s*
+
+⚠️ _Mohon segera mempersiapkan berkas-berkas yang diperlukan._
+━━━━━━━━━━━━━━━━━━━━━
+		`,
+		data.No,
+		data.Nama,
+		data.NIP,
+		data.Pangkat, data.Gol,
+		tmtLamaStr,
+		data.GajiPokokLama,
+		data.MasaKerjaLama,
+		tmtBaruStr,
+		data.GajiPokokBaru,
+		data.MasaKerjaBaru,
+		data.NomorSRT,
+		data.TanggalSRT,
+		data.OlehPejabat,
+		data.Satker,
+		data.Di,
+	)
+
 	_, err := client.SendMessage(context.Background(), groupJID, &waE2E.Message{
 		Conversation: &text,
 	})

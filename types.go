@@ -25,7 +25,7 @@ type KGBData struct {
 }
 
 type Notified struct {
-	NIP     string `gorm:"primaryKey,column:nip"`
-	TMTLama string
-	TMTBaru string
+	NIP     string `gorm:"column:nip;primaryKey"`
+	TMTLama string `gorm:"column:tmt_lama"`
+	TMTBaru string `gorm:"column:tmt_baru"`
 }

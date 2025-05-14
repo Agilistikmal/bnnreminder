@@ -6,6 +6,7 @@ import (
 
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
 )
 
 func NewDatabase() *gorm.DB {
@@ -18,7 +19,9 @@ func NewDatabase() *gorm.DB {
 		log.Println("session.db created successfully.")
 	}
 
-	db, err := gorm.Open(sqlite.Open("session.db"), &gorm.Config{})
+	db, err := gorm.Open(sqlite.Open("session.db"), &gorm.Config{
+		Logger: logger.Default.LogMode(logger.Silent), // Disable GORM logging
+	})
 	if err != nil {
 		log.Fatal("failed to connect database:", err)
 	}
