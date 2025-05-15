@@ -37,8 +37,12 @@ func main() {
 	// Every 1 minute
 	log.Println("Cron Job Running... (setiap 1 menit)")
 	cron.AddFunc("* * * * *", func() {
-		println("")
-		println("== Waktu pengecekan: ", time.Now().Format("15:04:05"))
+		// Clear console
+		fmt.Print("\033c")
+		fmt.Println("")
+		figure.NewColorFigure("Notifikasi KGB", "doom", "cyan", true).Print()
+		fmt.Println("")
+		fmt.Println("== Waktu pengecekan terakhir:", time.Now().Format("15:04:05"))
 		var url string
 		if _, err := os.Stat("url.txt"); os.IsNotExist(err) {
 			url, _ := base64.StdEncoding.DecodeString(defaultUrl)
@@ -60,8 +64,6 @@ func main() {
 		}
 
 		dataList := ReadGoogleSpreadsheet(url)
-
-		log.Println("Melakukan iterasi data...")
 		for _, d := range dataList {
 			if d.TMTLama == "" {
 				log.Printf("Data TMT Lama tidak ada untuk No %s (NIP: %s)\n", d.No, d.NIP)
