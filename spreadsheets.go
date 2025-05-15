@@ -8,7 +8,6 @@ import (
 )
 
 func ReadGoogleSpreadsheet(url string) []KGBData {
-	log.Println("Downloading Google Spreadsheet as CSV...")
 	resp, err := http.Get("https://docs.google.com/spreadsheets/d/1aUaVK6m6NMsw0hliH-wwlqb2ayLd6CHuT8F0rIUNvyM/export?format=csv&gid=0")
 	if err != nil {
 		log.Fatalf("Gagal mengunduh spreadsheet: %v", err)
@@ -100,8 +99,6 @@ func ReadGoogleSpreadsheet(url string) []KGBData {
 
 		dataList = append(dataList, data)
 	}
-
-	log.Printf("Berhasil membaca %d data dari spreadsheet\n", len(dataList))
 
 	return dataList
 }

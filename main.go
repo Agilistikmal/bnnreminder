@@ -32,8 +32,10 @@ func main() {
 	cron := cron.New(cron.WithLocation(loc))
 
 	// Every 1 minute
+	log.Println("Cron Job Running... (setiap 1 menit)")
 	cron.AddFunc("* * * * *", func() {
-		log.Println("Cron Job Running...")
+		println("")
+		println("== Waktu pengecekan: ", time.Now().Format("15:04:05"))
 		var url string
 		if _, err := os.Stat("url.txt"); os.IsNotExist(err) {
 			url := "https://docs.google.com/spreadsheets/d/1aUaVK6m6NMsw0hliH-wwlqb2ayLd6CHuT8F0rIUNvyM/edit?hl=id&gid=0#gid=0"
