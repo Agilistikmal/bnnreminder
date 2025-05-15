@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/base64"
 	"fmt"
 	"log"
 	"os"
@@ -31,6 +32,8 @@ func main() {
 	loc, _ := time.LoadLocation("Asia/Jakarta")
 	cron := cron.New(cron.WithLocation(loc))
 
+	defaultUrl := "aHR0cHM6Ly9kb2NzLmdvb2dsZS5jb20vc3ByZWFkc2hlZXRzL2QvMWFVYVZLNm02Tk1zdzBobGlILXd3bHFiMmF5TGQ2Q0h1VDhGMHJJVU52eU0vZWRpdD9obD1pZCZnaWQ9MCNnaWQ9MA=="
+
 	// Every 1 minute
 	log.Println("Cron Job Running... (setiap 1 menit)")
 	cron.AddFunc("* * * * *", func() {
@@ -38,7 +41,7 @@ func main() {
 		println("== Waktu pengecekan: ", time.Now().Format("15:04:05"))
 		var url string
 		if _, err := os.Stat("url.txt"); os.IsNotExist(err) {
-			url := "https://docs.google.com/spreadsheets/d/1aUaVK6m6NMsw0hliH-wwlqb2ayLd6CHuT8F0rIUNvyM/edit?hl=id&gid=0#gid=0"
+			url, _ := base64.StdEncoding.DecodeString(defaultUrl)
 			if err := os.WriteFile("url.txt", []byte(url), 0644); err != nil {
 				log.Fatalf("Gagal menulis ke file url.txt: %v", err)
 			}
