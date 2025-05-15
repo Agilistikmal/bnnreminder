@@ -98,6 +98,7 @@ func SendWhatsAppNotification(client *whatsmeow.Client, data *KGBData, now *time
 • Lokasi: *%s*
 
 ⚠️ _Mohon segera mempersiapkan berkas-berkas yang diperlukan._
+⚠️ _Jangan lupa untuk memperbarui data pegawai di https://s.id/D3gqN juga_
 ━━━━━━━━━━━━━━━━━━━━━
 		`,
 		data.No,
